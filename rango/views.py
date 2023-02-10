@@ -2,12 +2,11 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from rango.models import Category
 from rango.models import Page
-from rango.forms import CategoryForm
 from django.shortcuts import redirect
 from django.urls import reverse
-from rango.forms import PageForm
-from rango.forms import UserForm, UserProfileForm
-from django.contrib.auth import authenticate, login
+from rango.forms import UserForm, UserProfileForm, PageForm, CategoryForm
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
 
 def index(request):
     category_list = Category.objects.order_by('-likes')[:5]
@@ -51,7 +50,8 @@ def show_category(request, category_name_slug):
         context_dict['pages'] = None
         
     return render(request, 'rango/category.html', context=context_dict)
-    
+
+@login_required   
 def add_category(request):
     form = CategoryForm()
 
@@ -75,7 +75,7 @@ def add_category(request):
         # Render the form with error messages (if any).
     return render(request, 'rango/add_category.html', {'form': form})
 
-
+@login_required
 def add_page(request, category_name_slug):
     try:
         category = Category.objects.get(slug=category_name_slug)
@@ -203,7 +203,7 @@ def user_login(request):
                 return HttpResponse("Your rango account is disabled.")
         else:
             # Bad login details were provided. So we can't log the user in.
-            print("Invalid login details: {uername}, {password}")
+            print(f"Invalid login details: {username}, {password}")
             return HttpResponse("Invalid login details supplied")
 
     # The request is not a HTTP POST, so display the login form.
@@ -211,3 +211,15 @@ def user_login(request):
     else:  
     # No context variables to pass to the template system hence the blank disctionary object
         return render(request, 'rango/login.html')
+
+@login_required
+def restricted(request):
+    return render(request, 'rango/restricted.html')
+
+# Use the login_required() decorator to ensure only those logged in can access the view
+@login_required
+def user_logout(request):
+    # Since we know the user is logged in, we can now just log them out.
+    logout(request)
+    # Take the user back to homepage.
+    return redirect(reverse('rango:index'))
